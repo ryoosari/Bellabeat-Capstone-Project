@@ -1,0 +1,474 @@
+# %% [code]
+---
+title: 'Bellabeat: Google Data Analytics Capstone Project'
+author: "Ryo Osari"
+date: "2022-10-29"
+output:
+  html_document:
+    toc: yes
+    toc_depth: '4'
+    df_print: paged
+---
+
+*****
+# 1. Introduction
+Hello everyone, my name is Ryo Osari and this project is the final part for completing the [**Google Data Analytics Professional Certificate**](https://www.coursera.org/professional-certificates/google-data-analytics). This Professional Certification gives a holistic approach what data analysts does according to Google's standard curriculum.
+The skills learnt from this course are:
+
+**Soft skills**
+
+* Analytical thinking
+* Pattern recognition
+* Effective questioning
+
+**Hard skills**
+
+* Spreadsheets (Google Sheet & Excel)
+* SQL (PostGreSQL)
+* Tableau
+* R Programming
+
+*****
+## 1.1 Business Task
+The goal of this project is to analyze smart device usage data in order to gain insight into how consumers use non-Bellabeat smart devices and how to apply these insights into Bellabeat's marketing strategy using these three questions:
+
+1. What are some trends in smart device usage?
+2. How could these trends apply to Bellabeat customers?
+3. How could these trends help influence Bellabeat marketing strategy?
+
+
+*****
+# 2. Prepare the Data and Libraries in RStudio
+Collect the data required for analysis but since the data is available on Kaggle publicly, [FitBit Fitness Tracker Data](https://www.kaggle.com/datasets/arashnic/fitbit) (CC0: Public Domain) and download the dataset.
+
+*****
+## 2.1 Data Limitation
+* **Demographically-limited:** Bellebeat is a health tracker made specifically for women, it is important to know the **gender** of the data. Other missing factors that determine health are **age**, **income and social status**, and **education** as stated by the [**World Health Organization**](https://www.who.int/news-room/questions-and-answers/item/determinants-of-health).
+* **Time frame:** 31 days is limited to make any solid recommendation since there are seasons involved in a given month to consider someone's health well being. There are seasonal variations in health-related human physical activity. [**Reilly T, Peiser B. Seasonal variations in health-related human physical activity. Sports Med. 2006;36(6):473-85. doi: 10.2165/00007256-200636060-00002. PMID: 16737341**](https://pubmed.ncbi.nlm.nih.gov/16737341/). 
+
+Next, once the dataset's been downloaded, I prepare RStudio, an Integrated Development Environment (IDE) for R, a programming language for statistical computing and graphics. R itself can clean and make visualizations so it's my go-to cloud software.
+
+*****
+## 2.2 Install and load the packages
+Install the RStudio libraries for analysis and visualizations
+```{r Install Packages}
+install.packages("tidyverse")  # core package for cleaning and analysis
+install.packages("lubridate")  # date library mdy()
+install.packages("janitor")  # clean_names() to consists only _, character, numbers, and letters.
+install.packages("ggpubr")  # for the donut chart ggdonutchart()
+```
+
+Load the libraries
+```{r Load Libraries}
+library(tidyverse)
+library(janitor)
+library(lubridate)
+library(ggpubr)
+```
+
+After loading **tidyverse** package, the rest of the essential packages (**ggplot2**, **dplyr**, and **tidyr**) are loaded as well.
+
+*****
+## 2.3 Import and Prepare the Dataset
+Upload the archived dataset to RStudio by clicking the Upload button in the bottom right pane.
+
+File will be saved in a new folder named "Fitabase Data 4.12.16-5.12.16".
+
+```{r Assigning Data}
+d_activity <- read_csv("../input/fitbit/Fitabase Data 4.12.16-5.12.16/dailyActivity_merged.csv")
+d_sleep <- read_csv("../input/fitbit/Fitabase Data 4.12.16-5.12.16/sleepDay_merged.csv")
+h_calories <- read_csv("../input/fitbit/Fitabase Data 4.12.16-5.12.16/hourlyCalories_merged.csv")
+h_intensities <- read_csv("../input/fitbit/Fitabase Data 4.12.16-5.12.16/hourlyIntensities_merged.csv")
+h_steps <- read_csv("../input/fitbit/Fitabase Data 4.12.16-5.12.16/hourlySteps_merged.csv")
+```
+
+*****
+## 2.4 Preview Dataset
+Use head() function to a shortlist of each table and colnames() function for clearer column names.
+```{r Checking the Data}
+head(d_activity)
+head(d_sleep)
+head(h_calories)
+head(h_intensities)
+head(h_steps)
+
+colnames(d_activity)
+colnames(d_sleep)
+colnames(h_calories)
+colnames(h_intensities)
+colnames(h_steps)
+```
+
+
+*****
+# 3. Data Cleaning
+With the data assigned to their own values and recognizing the data structures, I can start the cleaning process.
+The goal of cleaning is to find:
+
+* **Data type**: Values must be of a certain type.
+* **Data range**: Values must fall between predefined maximum and minimum values.
+* **Mandatory values**: Ensure the values can't be left blank or empty.
+* **Unique**: No duplications.
+* **Regular expression (regex) patterns**: Values must match a prescribed pattern.
+* **Cross-field validation**: Certain conditions for multiple fields must be satisfied. Eg. Percentages must add up to 100%.
+* **Accuracy**: The data conforms to the actual entity being measured or described. Eg. zip codes are validated by street location.
+* **Completeness**: Data contains all desired components or described.
+* **Consistency**: Data is repeatable from different points of entry or collection.
+
+```{r Glimpse of the Data}
+glimpse(d_activity)
+glimpse(d_sleep)
+glimpse(h_calories)
+glimpse(h_intensities)
+glimpse(h_steps)
+```
+Checked and verified data type is accurate and consistent.
+
+```{r Clean Table Names}
+clean_names(d_activity)
+clean_names(d_sleep)
+clean_names(h_calories)
+clean_names(h_intensities)
+clean_names(h_steps)
+```
+To make sure the names are consistent and doesn't contain any special characters.
+
+```{r Find and Remove Duplicates}
+sum(duplicated(d_activity))
+sum(duplicated(d_sleep))
+sum(duplicated(h_calories))
+sum(duplicated(h_intensities))
+sum(duplicated(h_steps))
+
+# Duplicates found and removed.
+d_sleep <- d_sleep[!duplicated(d_sleep), ]
+```
+Duplicates found 3 at the **d_sleep** data and removed.
+
+```{r Checking for NA Values}
+sum(is.na(d_activity))
+sum(is.na(d_sleep))
+sum(is.na(h_calories))
+sum(is.na(h_intensities))
+sum(is.na(h_steps))
+```
+Mandatory values: Check and remove any NA values. Since the column in **weight_info** has too many empty values, the column "Fat" is removed.
+
+*****
+## 3.1 Data Formatting
+
+```{r Date Formatting the Daily Tables}
+# d_activity table
+d_activity <- d_activity %>%
+  rename(date = ActivityDate) %>%
+  mutate(date = as_date(date, format = "%m/%d/%Y"))
+
+# d_sleep table
+d_sleep <- d_sleep %>%
+  rename(date = SleepDay) %>%
+  mutate(date = as_date(date, format = "%m/%d/%Y"))
+```
+I will be joining the data frame of **d_sleep** into **d_activity** data frame. So I need to make the date format consistent and formatted between them.
+
+```{r Date Formatting the Hourly Tables}
+# h_calories table
+h_calories<- h_calories %>% 
+  rename(date_time = ActivityHour) %>% 
+  mutate(date_time = as.POSIXct(date_time,format ="%m/%d/%Y %I:%M:%S %p" , tz=Sys.timezone()))
+
+# h_intensities
+h_intensities<- h_intensities %>% 
+    rename(date_time = ActivityHour) %>% 
+    mutate(date_time = as.POSIXct(date_time,format ="%m/%d/%Y %I:%M:%S %p" , tz=Sys.timezone()))
+
+# h_steps
+h_steps<- h_steps %>% 
+  rename(date_time = ActivityHour) %>% 
+  mutate(date_time = as.POSIXct(date_time,format ="%m/%d/%Y %I:%M:%S %p" , tz=Sys.timezone()))
+```
+For the hourly tables, I will format the date time into a the **24-hour clock** type since it is currently using the **12-hour clock**.
+
+*****
+## 3.2 Data Merging
+```{r Data Merging}
+# Merge of d_activity + d_sleep
+d_merged <- merge(d_activity, d_sleep, by = c("Id", "date"))
+
+# Merge of h_calories + h_intensities + h_steps
+h_calories_intensities <- merge(h_calories, h_intensities, by = c("Id", "date_time"))
+
+# Merge the h_calories_intensities with h_steps to have the full data
+h_merged <- merge(h_calories_intensities, h_steps, by = c("Id", "date_time"))
+
+# Check the new table with head()
+head(d_merged)
+head(h_merged)
+```
+Merge all the tables into two major tables for the final process of analysis and visualization.
+
+
+*****
+# 4. Data Analysis
+This is the part of analyzing the data by formatting and adjusting, identifying relationships and patterns between the data, and making calculations.
+
+I will first the mean (average) steps for each user to find the amount of activity and put them into a new category.
+
+```{r New Table for Pie Chart}
+d_avg_steps <- d_merged %>%
+    group_by(Id) %>%
+    summarise(avg_d_steps = mean(TotalSteps), avg_d_calories = mean(Calories), avg_d_sleep = mean(TotalMinutesAsleep))
+
+# Check the new table with head()
+head(d_avg_steps)
+```
+**Parameter:**
+
+* **Inactive:** less than **5,000** steps a day
+* **Average (somewhat active):** ranges from **5,000** to **10,000** steps
+* **Active:** above **10,000** steps
+
+The range above is a modified range inspired from an article [**Healthline: How Many Steps Do People Take Per Day on Average?**](https://www.healthline.com/health/how-many-steps-a-day#How-many-steps-should-you-take-a-day?)
+
+```{r New Table for Pie Chart-2}
+# Add new column to categorize user steps and sleep quality
+active_users <- d_avg_steps %>%
+  mutate(active_users = case_when(
+    avg_d_steps < 5000 ~ "Inactive",
+    avg_d_steps >= 5000 & avg_d_steps < 9999 ~ "Average", 
+    avg_d_steps >= 10000 & avg_d_steps < 12499 ~ "Active",
+    avg_d_steps > 12500 ~ "Very Active")) %>%
+  mutate(sleep_quality = case_when(
+    avg_d_sleep < 420 ~ "Insufficient Sleep",
+    avg_d_sleep >= 420 & avg_d_sleep < 540 ~ "Good Sleep", 
+    avg_d_sleep > 540 ~ "Excessive Sleep"
+  ))
+
+# Check the new table with head()
+head(active_users)
+```
+Created a new table for further analysis and visualizations.
+
+```{r Percentage for Charts}
+# Create a new percentage table from active_users
+active_users_perc <- active_users %>%
+    group_by(active_users) %>%
+    summarise(total = n()) %>%
+    mutate(totals = sum(total)) %>%
+    group_by(active_users) %>%
+    summarise(total_percent = total / totals) %>%
+    mutate(labels = scales::percent(total_percent))
+
+# And create percentage table for sleep_quality
+sleep_users_perc <- active_users %>%
+    group_by(sleep_quality) %>%
+    summarise(total = n()) %>%
+    mutate(totals = sum(total)) %>%
+    group_by(sleep_quality) %>%
+    summarise(total_percent = total / totals) %>%
+    mutate(labels = scales::percent(total_percent))
+
+# Check the new table with head()
+head(active_users_perc)
+head(sleep_users_perc)
+```
+
+Clean up the unused tables to keep the Data Environment clean of aliases in the RStudio.
+```{r Clean up Unused Tables}
+rm(d_avg_steps)
+rm(d_sleep)
+rm(h_calories)
+rm(h_calories_intensities)
+rm(h_intensities)
+rm(h_steps)
+```
+
+
+*****
+# 5. Visualizations & Key Findings
+Create 2 pie charts to show the proportions of each active users and their sleep qualities.
+```{r Pie Chart Creation}
+# Pie Chart for Active Users
+active_users_perc %>%
+  ggplot(aes(x="",y=total_percent, fill=active_users)) +
+  geom_bar(stat = "identity", width = 1)+
+  coord_polar("y", start=0)+
+  theme_minimal()+
+  theme(axis.title.x= element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.ticks = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, size=14, face = "bold")) +
+  scale_fill_manual(values = c("#85e085","#ffd480", "#ff8080", "#e6e600")) +
+  geom_text(aes(label = labels),
+            position = position_stack(vjust = 0.5))+
+  labs(title="User's Active Based on Steps")
+
+# Pie Chart for User's Sleep Quality
+sleep_users_perc %>%
+  ggplot(aes(x="",y=total_percent, fill=sleep_quality)) +
+  geom_bar(stat = "identity", width = 1)+
+  coord_polar("y", start=0)+
+  theme_minimal()+
+  theme(axis.title.x= element_blank(),
+        axis.title.y = element_blank(),
+        panel.border = element_blank(), 
+        panel.grid = element_blank(), 
+        axis.ticks = element_blank(),
+        axis.text.x = element_blank(),
+        plot.title = element_text(hjust = 0.5, size=14, face = "bold")) +
+  scale_fill_manual(values = c("#ffd480", "#85e085", "#ff8080")) +
+  geom_text(aes(label = labels),
+            position = position_stack(vjust = 0.5))+
+  labs(title="User's Sleep Quality")
+```
+
+*****
+## 5.1 Pie Chart's Observation
+**User's Active Based on Steps**
+As shown on the first chart, the majority of people are averagely active (with 5,000 to 10,000 steps per day). The runner up is the inactive people and only a minority of 4.2% of the people are highly active (minimum of 12,500 steps per day).
+
+**User's Sleep Quality**
+There is a near equal split between people who doesn't get enough sleep (less than 7 hours per day) in comparison to those who get the right amount of sleep (7 to 9 hours per day).
+
+*****
+## 5.2 Correlation Coefficient: Calories vs. Steps
+Now we need to see if there is a correlation between steps and calories. Does more steps equal to higher calorie counts or not? How strong is their relationship?
+
+**Correlation Coefficient**
+1. Very Weak    0.00 to 0.19
+2. Weak         0.20 to 0.39
+3. Moderate     0.40 to 0.59
+4. Strong       0.60 to 0.79
+5. Very Strong  0.80 to 1.0
+
+```{r Steps vs. Calories Chart}
+d_merged %>% 
+  group_by(TotalSteps, Calories) %>% 
+  ggplot(aes(x = TotalSteps, y = Calories, color = Calories)) +
+  geom_point() +
+  geom_smooth(color = "blue") + 
+  theme(legend.position = c(.8, .3),
+        legend.spacing.y = unit(2, "mm"), 
+        panel.border = element_rect(colour = "black", fill=NA),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black")) +
+  labs(title = 'Calories vs. Total Steps',
+       y = 'Calories',
+       x = 'Total Steps',
+       caption = 'Data Source: FitBit Fitness Tracker Data')
+```
+
+After looking at the result, it's time to count the Correlation Coefficient between Calories vs. Steps.
+```{r Correlation between Steps vs. Calories}
+cor(d_merged$TotalSteps, d_merged$Calories)
+
+#It outputs as 0.4063007
+```
+After calculating the Correlation Coefficient, the result shows as **0.4063007.**
+
+As the table above, it shows that there its relationship strength is **Moderate.**
+
+```{r Steps vs. Sleep Chart}
+d_merged %>% 
+  group_by(TotalSteps, TotalMinutesAsleep) %>% 
+  ggplot(aes(x = TotalSteps, y = TotalMinutesAsleep, color = TotalMinutesAsleep)) +
+  geom_point() +
+  geom_smooth(color = "red") + 
+  theme(legend.position = c(.8, .3),
+        legend.spacing.y = unit(2, "mm"), 
+        panel.border = element_rect(colour = "black", fill=NA),
+        legend.background = element_blank(),
+        legend.box.background = element_rect(colour = "black")) +
+  labs(title = 'Minutes Asleep vs. Total Steps',
+       y = 'Minutes Asleep',
+       x = 'Total Steps',
+       caption = 'Data Source: FitBit Fitness Tracker Data')
+```
+
+```{r Correlation between Steps vs. Sleep}
+cor(d_merged$TotalSteps, d_merged$TotalMinutesAsleep)
+
+#It outputs as -0.1903439
+```
+The result of **-0.1903439** shows that there is **no correlation** between the amount a user steps per day and the amount of sleep they have at that night.
+
+
+After  this discovered correlation, next, I need to find the average steps taken to discover which days tend to have more steps, more activities.
+
+*****
+### 5.3 Bar Chart: Daily Average Sleeps & Steps
+Prepare a new table for the bar chart to visualize which day, on average, has the most and least activities in a week
+```{r New Table for Daily Average Sleeps & Steps}
+# Table for bar charts
+weekday_d <- d_merged %>%
+  mutate(weekday = weekdays(date), TotalSteps, TotalMinutesAsleep)
+
+weekday_d$weekday <- ordered(weekday_d$weekday, levels = c("Monday", "Tuesday", "Wednesday", "Thursday",
+  "Friday", "Saturday", "Sunday"))
+
+weekday_d <- weekday_d %>%
+  group_by(weekday) %>%
+  summarize (daily_steps = mean(TotalSteps), daily_sleep = mean(TotalMinutesAsleep))
+
+# Check the new table with head()
+head(weekday_d)
+```
+
+```{r Daily Average Sleeps & Steps Bar Chart}
+# Bar chart for Steps
+ggplot(weekday_d, aes(weekday, daily_steps)) +
+      geom_col(fill = "#006699") +
+      geom_hline(yintercept = 7500, size=1, color = "#D90319") +
+      labs(title = "Daily Steps per Weekday", x= "", y = "")
+    
+
+# Bar chart for Sleeps
+ggplot(weekday_d, aes(weekday, daily_sleep)) +
+      geom_col(fill = "#002B55") +
+      geom_hline(yintercept = 480, size=1, color = "#D90319") +
+      labs(title = "Minutes Asleep per Weekday", x = "", y = "")
+```
+**Bar Chart for Steps**
+
+* Users are able to maintain a healthy average steps of around or above 7,500 steps per day except Sundays.
+* Saturday has the highest amount of steps per day, knowing that Saturday is in the weekend.
+
+**Bar Chart for Sleeps**
+
+* Users did not meet the recommended amount of sleeps in minutes per day (8 hours) in any given day.
+* The most amount of sleep users can get on average is on Sundays.
+
+###5.4 Key Findings
+With the data cleaned and analyzed, it has provided valuable insights for Bellabeat's marketing strategy team.
+
+* The majority of the users are moderately active and the next majority of the users are inactive (under 5,000 steps per day).
+* 54% of the users didn't has insufficient amount of sleep and 42% has good sleep. It's fairly equal.
+* There is a fair amount of positive correlation between steps and calories burnt per day.
+* There is no correlation between the amount of steps and amount of sleep.
+* Users are mostly active on Saturday, least active during Sundays, and follows up to a near-equal amount of activities on Monday and Tuesday.
+* Users, on average did not get enough sleep every day. The most amount of sleep they get is only on Sunday.
+
+*****
+# 6. Recommendations
+Keeping in mind, Bellabeat is a high-tech manufacturer of health-focused products for women and the main goal of this project is to gain insight into how consumers use non-Bellabeat smart devices and provide high-level recommendations for how these trends can inform Bellabeat's marketing strategy.
+
+### 6.1 Marketing Strategy Recommendations for Bellabeat are:
+
+* With health-focused product in mind, focusing on the long-term health of the users is a priority. Since this is a women-based product, it is possible to collect more data by adding an additional feature to add their menstrual cycle the product so Bellabeat can have more in-depth analysis in the future, complimenting features that may have positive impact during their time of the month.
+* Focus on the majority of the users, which are the average active people but still keep other users in mind. Provide solutions to the problem they are currently facing, with or without their knowledge that their lifestyle may impact their long term health. A small friendly reminder that it is important to maintain a good amount of sleep and remind them that it is only "x amount of steps left" to keep a active lifestyle.
+* Adding a new feature, knowing their calories intake will help maintain a balanced calories amount of intake and outtake can be important. With the new data, it is possible to help users give a friendly reminder to not skip out meals, or remind if they had enough meal to consume or not.
+  * Further possibilities with this new data, it is possible to help users keep track of their goal, if they wanted to gain or lose weight with the in and out of calories per day.
+* Gamification. WIth features that may have "Levels", compare to other users in a positive manner can motivate users to stay active and healthy. Making daily and weekly goals can help add "Experience" to the user's profile and have sharing feature after each successful goal. Referral system with rewards to other people can help them build communities focusing more with using Bellabeat as their main product.
+
+## 6.2 Further Recommendations, Product Related:
+With better products, users will have a better time using it. Collecting and processing health related data, it is ideal to have users to always use their products, even during sleep. With less down time, it is important to make further improvements on:
+
+* Make the product lightweight and skin-friendly material.
+* Longer battery life for less down time due to charging the product.
+* Make the product gives an elegant sensation and universal design so it can fit most outfits. (Further data collection necessary).
+
+Sometimes a short battery life can cause missing data due to users forgetting to wear their product again and leaving it at home.
+
+High quality materials in a product can make users proud of wearing it, and with more users always wearing it, it advertises to people that Bellabeat is out there, making them remember that there is a health product that people can wear everyday.
