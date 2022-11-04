@@ -8,4 +8,4 @@ This project is the final part for completing the Google Data Analytics Professi
 * **FitBeat:** Dataset used for the analysis process to reach the insights required by Bellabeat's stakeholders.
 
 ## More Information
-It is recommended to run the file in a new Notebook in Kaggle to be able to run all the existing code and outputs the same results.
+It is recommended to run the file in a new Notebook in Kaggle to be able to run all the existing codes and outputs the same result.
